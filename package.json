@@ -1,0 +1,48 @@
+{
+  "name": "ai-config-monitor",
+  "version": "1.0.0",
+  "description": "Real-time CLI dashboard for monitoring AI vendor MCP servers, hooks, skills configuration",
+  "type": "module",
+  "bin": {
+    "ai-monitor": "dist/cli.js"
+  },
+  "files": [
+    "dist/cli.js"
+  ],
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun run --watch src/index.ts",
+    "build": "bun build src/index.ts --outfile=dist/cli.js --target=bun && chmod +x dist/cli.js",
+    "build:bin": "bun build src/index.ts --compile --outfile=dist/ai-monitor",
+    "prepack": "bun run build",
+    "link": "bun run build && bun link"
+  },
+  "keywords": [
+    "ai",
+    "mcp",
+    "monitor",
+    "cli",
+    "dashboard",
+    "claude",
+    "cursor",
+    "vscode",
+    "gemini",
+    "docker"
+  ],
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node-notifier": "^8.0.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "ansis": "^4.2.0",
+    "node-notifier": "^10.0.1",
+    "yaml": "^2.8.2"
+  }
+}
