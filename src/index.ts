@@ -16,7 +16,7 @@ function parseArgs(): { projectPath?: string } {
       printHelp();
       process.exit(0);
     } else if (args[i] === '--version' || args[i] === '-v') {
-      console.log('ai-config-monitor v1.0.0');
+      console.log('ai-config-monitor v1.1.0');
       process.exit(0);
     }
   }
@@ -26,7 +26,7 @@ function parseArgs(): { projectPath?: string } {
 
 function printHelp(): void {
   console.log(`
-ai-config-monitor v1.0.0
+ai-config-monitor v1.1.0
 
 Real-time CLI dashboard for monitoring AI vendor configurations.
 

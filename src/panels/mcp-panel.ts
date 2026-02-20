@@ -57,26 +57,44 @@ export function renderMcpPanel(
 }
 
 function getColumns(innerWidth: number): Column[] {
+  // Ultra-wide (>=140): 7 columns with COMMAND
+  if (innerWidth >= 140) {
+    const fixed = 16 + 24 + 14 + 14 + 16; // VENDOR + SERVER + SCOPE + TRANSPORT + STATUS
+    const flex = innerWidth - fixed;
+    const cmdW = Math.min(Math.floor(flex * 0.6), 60);
+    const detW = Math.max(flex - cmdW, 12);
+    return [
+      { header: 'VENDOR', width: 16 },
+      { header: 'SERVER', width: 24 },
+      { header: 'SCOPE', width: 14 },
+      { header: 'TRANSPORT', width: 14 },
+      { header: 'STATUS', width: 16 },
+      { header: 'COMMAND', width: cmdW },
+      { header: 'DETAIL', width: detW },
+    ];
+  }
+  // Wide (>=90): 6 columns
   if (innerWidth >= 90) {
     return [
       { header: 'VENDOR', width: 14 },
       { header: 'SERVER', width: 20 },
-      { header: 'SCOPE', width: 10 },
+      { header: 'SCOPE', width: 12 },
       { header: 'TRANSPORT', width: 12 },
       { header: 'STATUS', width: 14 },
-      { header: 'DETAIL', width: Math.max(innerWidth - 70, 10) },
+      { header: 'DETAIL', width: Math.max(innerWidth - 72, 10) },
     ];
   }
+  // Medium (>=70): 5 columns
   if (innerWidth >= 70) {
     return [
       { header: 'VENDOR', width: 12 },
       { header: 'SERVER', width: 18 },
-      { header: 'SCOPE', width: 10 },
+      { header: 'SCOPE', width: 12 },
       { header: 'STATUS', width: 14 },
-      { header: 'DETAIL', width: Math.max(innerWidth - 54, 8) },
+      { header: 'DETAIL', width: Math.max(innerWidth - 56, 8) },
     ];
   }
-  // Narrow
+  // Narrow: 4 columns
   return [
     { header: 'VENDOR', width: 10 },
     { header: 'SERVER', width: 16 },
@@ -115,6 +133,23 @@ function renderServerRow(server: McpServer, columns: Column[], totalWidth: numbe
 
   const scope = isChild ? theme.muted('') : scopeLabel(server.scope);
 
+  // Build command string for ultra-wide
+  let cmdStr = '';
+  if (server.command) {
+    const args = server.args?.join(' ') || '';
+    cmdStr = args ? `${server.command} ${args}` : server.command;
+  } else if (server.url) {
+    cmdStr = server.url;
+  }
+
+  if (columns.length === 7) {
+    // Ultra-wide: VENDOR | SERVER | SCOPE | TRANSPORT | STATUS | COMMAND | DETAIL
+    return renderTableRow(
+      [vendorLabel, theme.value(server.name), scope, theme.muted(server.transport), `${icon} ${sColor(server.status)}`, theme.muted(cmdStr), theme.muted(detail)],
+      columns,
+      totalWidth,
+    );
+  }
   if (columns.length === 6) {
     // Wide: VENDOR | SERVER | SCOPE | TRANSPORT | STATUS | DETAIL
     return renderTableRow(

@@ -18,12 +18,7 @@ export function renderHooksPanel(
   }
 
   const innerWidth = width - 4;
-  const columns: Column[] = [
-    { header: 'EVENT', width: Math.min(20, Math.floor(innerWidth * 0.2)) },
-    { header: 'MATCHER', width: Math.min(16, Math.floor(innerWidth * 0.16)) },
-    { header: 'COMMAND', width: Math.max(Math.floor(innerWidth * 0.44), 20) },
-    { header: 'SCOPE', width: 10 },
-  ];
+  const columns = getColumns(innerWidth);
 
   lines.push(...renderTableHeader(columns, width));
 
@@ -52,4 +47,25 @@ export function renderHooksPanel(
   }
 
   return lines;
+}
+
+function getColumns(innerWidth: number): Column[] {
+  // Wide (>=100): proportional with generous COMMAND
+  if (innerWidth >= 100) {
+    const fixed = 22 + 20 + 14; // EVENT + MATCHER + SCOPE
+    const cmdW = Math.max(innerWidth - fixed, 20);
+    return [
+      { header: 'EVENT', width: 22 },
+      { header: 'MATCHER', width: 20 },
+      { header: 'COMMAND', width: cmdW },
+      { header: 'SCOPE', width: 14 },
+    ];
+  }
+  // Standard
+  return [
+    { header: 'EVENT', width: Math.min(20, Math.floor(innerWidth * 0.2)) },
+    { header: 'MATCHER', width: Math.min(16, Math.floor(innerWidth * 0.16)) },
+    { header: 'COMMAND', width: Math.max(Math.floor(innerWidth * 0.44), 20) },
+    { header: 'SCOPE', width: 12 },
+  ];
 }

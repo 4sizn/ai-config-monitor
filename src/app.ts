@@ -214,12 +214,13 @@ export class App {
   private render(): void {
     const w = this.screen.width;
     const h = this.screen.height;
+
     const lines: string[] = [];
 
     // ─── Header ───
     lines.push(topBorder(w));
     const time = new Date().toLocaleTimeString('en-US', { hour12: false });
-    const titleLeft = `  AI CONFIG MONITOR v1.0.0`;
+    const titleLeft = `  AI CONFIG MONITOR v1.1.0`;
     const titleRight = time + '  ';
     const titlePad = Math.max(w - 4 - visibleWidth(titleLeft) - visibleWidth(titleRight), 0);
     lines.push(boxLine(
@@ -254,7 +255,7 @@ export class App {
     lines.push(middleBorder(w));
 
     // ─── Panel Content ───
-    const panelMaxRows = Math.max(h - 10, 5);
+    const panelMaxRows = Math.max(h - 11, 5);
 
     let panelLines: string[];
     switch (this.state.activeTab) {

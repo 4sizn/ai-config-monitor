@@ -1,4 +1,4 @@
-import { padRight, visibleWidth } from './ansi.ts';
+import { padRight, fitWidth, visibleWidth } from './ansi.ts';
 import { theme } from './theme.ts';
 
 // ─── Box Drawing Characters ───
@@ -56,7 +56,14 @@ export function middleBorder(width: number): string {
 }
 
 export function boxLine(content: string, width: number): string {
-  const padded = padRight(content, width - 4);
+  const innerWidth = width - 4;
+  const vw = visibleWidth(content);
+  let padded: string;
+  if (vw >= innerWidth) {
+    padded = fitWidth(content, innerWidth);
+  } else {
+    padded = content + ' '.repeat(innerWidth - vw);
+  }
   return theme.border(box.v) + ' ' + padded + ' ' + theme.border(box.v);
 }
 
@@ -72,29 +79,52 @@ export interface Column {
   align?: 'left' | 'right';
 }
 
+// Normalize column widths to fit within innerWidth
+function normalizeColumns(columns: Column[], innerWidth: number): Column[] {
+  const total = columns.reduce((sum, c) => sum + c.width, 0);
+  if (total <= innerWidth) return columns;
+
+  // Scale down proportionally
+  const ratio = innerWidth / total;
+  const normalized = columns.map(c => ({
+    ...c,
+    width: Math.max(Math.floor(c.width * ratio), 4),
+  }));
+
+  // Distribute remaining space to last column
+  const newTotal = normalized.reduce((sum, c) => sum + c.width, 0);
+  const diff = innerWidth - newTotal;
+  if (diff > 0) {
+    normalized[normalized.length - 1].width += diff;
+  }
+
+  return normalized;
+}
+
 export function renderTableHeader(columns: Column[], totalWidth: number): string[] {
+  const innerWidth = totalWidth - 4;
+  const cols = normalizeColumns(columns, innerWidth);
   const lines: string[] = [];
   let headerLine = '';
 
-  for (const col of columns) {
+  for (const col of cols) {
     headerLine += theme.label(padRight(col.header, col.width));
   }
 
   lines.push(boxLine(headerLine, totalWidth));
-  lines.push(boxLine(theme.muted(box.h.repeat(totalWidth - 4)), totalWidth));
+  lines.push(boxLine(theme.muted(box.h.repeat(innerWidth)), totalWidth));
   return lines;
 }
 
 export function renderTableRow(values: string[], columns: Column[], totalWidth: number): string {
+  const innerWidth = totalWidth - 4;
+  const cols = normalizeColumns(columns, innerWidth);
   let line = '';
-  for (let i = 0; i < columns.length; i++) {
+
+  for (let i = 0; i < cols.length; i++) {
     const val = values[i] || '';
-    const vw = visibleWidth(val);
-    if (vw > columns[i].width) {
-      line += val.slice(0, columns[i].width);
-    } else {
-      line += padRight(val, columns[i].width);
-    }
+    line += fitWidth(val, cols[i].width);
   }
+
   return boxLine(line, totalWidth);
 }
