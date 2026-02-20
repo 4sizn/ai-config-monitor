@@ -1,6 +1,6 @@
 import type { HealthResult, Vendor } from '../types/index.ts';
 
-const TIMEOUT_MS = 3_000;
+const TIMEOUT_MS = 2_000;
 
 export async function checkHttpHealth(
   serverName: string,
@@ -48,7 +48,7 @@ export async function checkHttpHealth(
     };
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
-      return { ...base, status: 'ERROR', detail: 'timeout (3s)' };
+      return { ...base, status: 'ERROR', detail: 'timeout (2s)' };
     }
     return { ...base, status: 'STOPPED', detail: 'connection refused' };
   }

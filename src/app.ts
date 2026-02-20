@@ -1,8 +1,8 @@
 import { homedir } from 'os';
 import { Screen } from './renderer/screen.ts';
 import { topBorder, bottomBorder, middleBorder, boxLine, emptyBoxLine } from './renderer/box.ts';
-import { theme } from './renderer/theme.ts';
-import { padRight, visibleWidth } from './renderer/ansi.ts';
+import { theme, rainbowText } from './renderer/theme.ts';
+import { padRight, visibleWidth, fitWidth } from './renderer/ansi.ts';
 import { TABS } from './types/index.ts';
 import type { AppState, McpServer } from './types/index.ts';
 
@@ -26,6 +26,9 @@ import { HealthChecker } from './health/checker.ts';
 import { FileWatcher } from './watcher/file-watcher.ts';
 import { Notifier } from './notify/notifier.ts';
 
+const ALERT_BANNER_DURATION = 30_000; // 알림 배너 표시 시간 (30초)
+const FLASH_TOGGLE_TICKS = 5;         // 깜빡임 토글 간격 (5틱 = 500ms)
+
 export class App {
   private screen: Screen;
   private state: AppState;
@@ -35,9 +38,12 @@ export class App {
   private healthChecker?: HealthChecker;
   private fileWatcher?: FileWatcher;
   private notifier?: Notifier;
+  private flashTick = 0;
+  private healthIntervalMs: number;
 
-  constructor(private projectPath?: string) {
+  constructor(private projectPath?: string, healthIntervalMs?: number) {
     this.screen = new Screen();
+    this.healthIntervalMs = healthIntervalMs ?? 10_000;
     this.state = {
       servers: [],
       skills: [],
@@ -77,6 +83,13 @@ export class App {
 
     // Start render loop for subsequent updates
     this.renderInterval = setInterval(() => {
+      this.flashTick++;
+
+      // 활성 알림이 있으면 레인보우 + 배너 애니메이션을 위해 주기적 redraw
+      if (this.hasActiveAlert() && this.flashTick % 2 === 0) {
+        this.dirty = true;
+      }
+
       if (this.dirty) {
         this.render();
         this.dirty = false;
@@ -89,6 +102,7 @@ export class App {
     if (this.renderInterval) clearInterval(this.renderInterval);
     this.healthChecker?.stop();
     this.fileWatcher?.stop();
+    this.notifier?.stop();
     this.screen.leave();
 
     // Restore terminal
@@ -211,6 +225,40 @@ export class App {
     return servers;
   }
 
+  // ─── 활성 알림 여부 (30초 이내) ───
+  private hasActiveAlert(): boolean {
+    if (this.state.alerts.length === 0) return false;
+    const latest = this.state.alerts[this.state.alerts.length - 1];
+    return Date.now() - latest.time.getTime() < ALERT_BANNER_DURATION;
+  }
+
+  // ─── 삐용삐용 깜빡이는 알림 배너 ───
+  private renderAlertBanner(w: number): string[] {
+    if (!this.hasActiveAlert()) return [];
+
+    const latest = this.state.alerts[this.state.alerts.length - 1];
+    const isFlashA = Math.floor(this.flashTick / FLASH_TOGGLE_TICKS) % 2 === 0;
+    const flashStyle = isFlashA ? theme.flashA : theme.flashB;
+
+    const elapsed = Math.floor((Date.now() - latest.time.getTime()) / 1000);
+    const elapsedStr = elapsed < 60 ? `${elapsed}s ago` : `${Math.floor(elapsed / 60)}m ago`;
+
+    const icon = isFlashA ? ' !! ALERT ' : ' ** ALERT ';
+    const msg = `${latest.server}: ${latest.from} -> ${latest.to}`;
+    const bannerInner = w - 4;
+    const content = `${icon} ${msg}`;
+    const rightPad = elapsedStr + ' ';
+    const midPad = Math.max(bannerInner - visibleWidth(content) - visibleWidth(rightPad), 0);
+    const fullLine = content + ' '.repeat(midPad) + rightPad;
+
+    // 배너 전체를 flash 스타일로 칠함
+    const styledLine = flashStyle(fitWidth(fullLine, bannerInner));
+
+    return [
+      boxLine(styledLine, w),
+    ];
+  }
+
   private render(): void {
     const w = this.screen.width;
     const h = this.screen.height;
@@ -220,7 +268,7 @@ export class App {
     // ─── Header ───
     lines.push(topBorder(w));
     const time = new Date().toLocaleTimeString('en-US', { hour12: false });
-    const titleLeft = `  AI CONFIG MONITOR v1.1.0`;
+    const titleLeft = `  AI CONFIG MONITOR v1.2.0`;
     const titleRight = time + '  ';
     const titlePad = Math.max(w - 4 - visibleWidth(titleLeft) - visibleWidth(titleRight), 0);
     lines.push(boxLine(
@@ -233,11 +281,16 @@ export class App {
     const statsText = `  ${totalServers} MCP servers · ${this.state.skills.length} skills · ${this.state.hooks.length} hooks · ${this.state.plugins.length} plugins`;
     lines.push(boxLine(theme.muted(statsText), w));
 
-    // Project path
+    // Project path (알림 활성 시 레인보우 깜빡임)
     const projDisplay = this.projectPath || process.cwd();
     const home = homedir();
     const shortPath = projDisplay.startsWith(home) ? '~' + projDisplay.slice(home.length) : projDisplay;
-    lines.push(boxLine(`  ${theme.label('PROJECT')} ${theme.value(shortPath)}`, w));
+    if (this.hasActiveAlert()) {
+      const projLine = `  PROJECT ${shortPath}`;
+      lines.push(boxLine(rainbowText(projLine, this.flashTick), w));
+    } else {
+      lines.push(boxLine(`  ${theme.label('PROJECT')} ${theme.value(shortPath)}`, w));
+    }
 
     // ─── Tabs ───
     lines.push(middleBorder(w));
@@ -254,8 +307,13 @@ export class App {
     lines.push(boxLine(tabLine, w));
     lines.push(middleBorder(w));
 
+    // ─── Alert Banner (삐용삐용) ───
+    const alertBanner = this.renderAlertBanner(w);
+    const bannerHeight = alertBanner.length;
+    lines.push(...alertBanner);
+
     // ─── Panel Content ───
-    const panelMaxRows = Math.max(h - 11, 5);
+    const panelMaxRows = Math.max(h - 11 - bannerHeight, 5);
 
     let panelLines: string[];
     switch (this.state.activeTab) {
@@ -284,8 +342,9 @@ export class App {
 
     // ─── Footer ───
     lines.push(middleBorder(w));
+    const intervalSec = Math.round(this.healthIntervalMs / 1000);
     const footerLeft = '  q quit · r refresh · tab next · 1-4 jump';
-    const footerRight = `Watching ${this.state.watchedFiles} files  `;
+    const footerRight = `${intervalSec}s poll · Watching ${this.state.watchedFiles} files  `;
     const footerPad = Math.max(w - 4 - visibleWidth(footerLeft) - visibleWidth(footerRight), 0);
     lines.push(boxLine(
       theme.muted(footerLeft) + ' '.repeat(footerPad) + theme.muted(footerRight),
@@ -297,7 +356,7 @@ export class App {
   }
 
   private async startHealthChecker(): Promise<void> {
-    this.healthChecker = new HealthChecker(this.state.servers, 30_000);
+    this.healthChecker = new HealthChecker(this.state.servers, this.healthIntervalMs);
     this.notifier = new Notifier();
 
     this.healthChecker.on('result', (results) => {
@@ -311,19 +370,27 @@ export class App {
           server.responseTime = result.responseTime;
           server.lastChecked = result.checkedAt;
 
-          // Alert on active→stopped transition (skip first run baselines)
-          if (oldStatus !== 'UNKNOWN' && oldStatus !== result.status) {
-            if ((oldStatus === 'ACTIVE' || oldStatus === 'RUNNING') &&
-                (result.status === 'STOPPED' || result.status === 'ERROR')) {
-              const alert = {
-                server: result.server,
-                vendor: result.vendor,
-                from: oldStatus,
-                to: result.status,
-                time: new Date(),
-                message: `${result.server}: ${oldStatus} → ${result.status}`,
-              };
-              this.state.alerts.push(alert);
+          // Alert 조건:
+          // 1. 상태 전환: ACTIVE/RUNNING → STOPPED/ERROR
+          // 2. 초기 감지: 첫 체크에서 바로 STOPPED/ERROR (이미 장애 상태)
+          const isDown = result.status === 'STOPPED' || result.status === 'ERROR';
+          const wasUp = oldStatus === 'ACTIVE' || oldStatus === 'RUNNING';
+          const isFirstCheck = oldStatus === 'UNKNOWN';
+          const statusChanged = oldStatus !== result.status;
+
+          if (isDown && statusChanged && (wasUp || isFirstCheck)) {
+            const fromLabel = isFirstCheck ? 'UNKNOWN' : oldStatus;
+            const alert = {
+              server: result.server,
+              vendor: result.vendor,
+              from: fromLabel,
+              to: result.status,
+              time: new Date(),
+              message: `${result.server}: ${fromLabel} → ${result.status}`,
+            };
+            this.state.alerts.push(alert);
+            // 첫 체크에서 감지된 장애는 벨 없이 배너만 표시
+            if (!isFirstCheck) {
               this.notifier?.notify(alert);
             }
           }

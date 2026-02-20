@@ -23,6 +23,10 @@ export const theme = {
   alertText: ansis.red.bold,
   alertWarn: ansis.yellow.bold,
 
+  // Flash banner (alternating)
+  flashA: ansis.bgRed.white.bold,
+  flashB: ansis.bgYellow.black.bold,
+
   // Tab
   tabActive: ansis.bgCyan.black.bold,
   tabInactive: ansis.gray,
@@ -67,6 +71,35 @@ export function statusIcon(status: string): string {
     default:
       return theme.muted('○');
   }
+}
+
+// ─── Rainbow Text ───
+// 문자마다 다른 색을 입혀 레인보우 효과. tick으로 색 오프셋이 이동하며 흐르는 애니메이션.
+const RAINBOW = [
+  ansis.red.bold,
+  ansis.hex('#FF7F00').bold,   // orange
+  ansis.yellow.bold,
+  ansis.green.bold,
+  ansis.cyan.bold,
+  ansis.blue.bold,
+  ansis.magenta.bold,
+];
+
+export function rainbowText(text: string, tick: number): string {
+  let result = '';
+  let colorIdx = tick % RAINBOW.length;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === ' ') {
+      result += ch;
+    } else {
+      result += RAINBOW[colorIdx % RAINBOW.length](ch);
+      colorIdx++;
+    }
+  }
+
+  return result;
 }
 
 export function vendorColor(vendor: string): (s: string) => string {

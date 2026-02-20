@@ -3,7 +3,7 @@ import { isDockerRunning } from '../platform/process.ts';
 
 // `docker mcp server list` 결과를 캐시 (여러 서버가 동일 명령을 반복 호출 방지)
 let cachedMcpList: { names: Set<string>; time: number } | null = null;
-const CACHE_TTL = 10_000; // 10초
+const CACHE_TTL = 5_000; // 5초
 
 async function getEnabledMcpServers(): Promise<Set<string>> {
   const now = Date.now();

@@ -16,12 +16,13 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  AI CONFIG MONITOR v1.1.0                                    14:47:23   │
+│  AI CONFIG MONITOR v1.2.0                                    14:47:23   │
 │  9 MCP servers · 16 skills · 2 hooks · 1 plugin                        │
 │  PROJECT ~/Documents/lotus/my-project                                   │
 ├──────────────────────────────────────────────────────────────────────────┤
 │  [1] MCP Servers   [2] Skills   [3] Hooks   [4] Overview               │
 ├──────────────────────────────────────────────────────────────────────────┤
+│ !! ALERT  context7: ACTIVE -> STOPPED                          12s ago  │
 │                                                                          │
 │  VENDOR        SERVER            SCOPE    TRANSPORT  STATUS    DETAIL    │
 │  ──────────────────────────────────────────────────────────────────────  │
@@ -40,7 +41,7 @@
 │                                                                          │
 │  [!] context7: ACTIVE → STOPPED (14:45:12)                              │
 ├──────────────────────────────────────────────────────────────────────────┤
-│  q quit · r refresh · tab next · 1-4 jump          Watching 10 files    │
+│  q quit · r refresh · tab next · 1-4 jump   10s poll · Watching 10 files│
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -51,8 +52,8 @@ AI 개발 환경이 복잡해졌습니다. Claude Desktop, Cursor, VS Code, Gemi
 **ai-config-monitor**는 이 모든 설정을 하나의 터미널 대시보드에서 실시간으로 모니터링합니다.
 
 - 설정 파일이 변경되면 **자동 감지**하여 즉시 반영
-- MCP 서버 상태를 **30초 간격 헬스체크**
-- 서버 다운 시 **데스크톱 알림 + 터미널 벨**
+- MCP 서버 상태를 **10초 간격 헬스체크** (`--interval`로 조절 가능)
+- 서버 다운 시 **깜빡이는 ALERT 배너 + 터미널 벨 + 데스크톱 알림**
 - 별도 웹 서버 없이 **순수 터미널 UI** (ANSI escape codes)
 
 ## Features
@@ -91,8 +92,35 @@ AI 개발 환경이 복잡해졌습니다. Claude Desktop, Cursor, VS Code, Gemi
 
 - **Docker**: `docker mcp server list` 파싱 + 컨테이너 상태 확인
 - **Process**: OS 프로세스 테이블 검색 (npx/stdio 서버)
-- **HTTP**: 엔드포인트 ping with 3s timeout
+- **HTTP**: 엔드포인트 ping with 2s timeout
 - **Alert**: ACTIVE → STOPPED 전환 시 즉시 알림
+
+### Visual Alert Banner
+
+서버 다운 감지 시 탭 바로 아래에 **빨강/노랑 깜빡이는 ALERT 배너**가 나타납니다:
+
+```
+├──────────────────────────────────────────────────────────────────────────┤
+│ !! ALERT  context7: ACTIVE -> STOPPED                          12s ago  │  ← 빨강/노랑 교대 깜빡임
+│                                                                          │
+│  VENDOR        SERVER            ...                                     │
+```
+
+- 30초간 표시 후 자동 소멸
+- 500ms 간격으로 `bgRed` / `bgYellow` 교대 깜빡임
+- 어떤 탭에 있든 즉시 확인 가능
+
+### Audible Alert Patterns
+
+서버 상태 이상 시 심각도에 따라 다른 터미널 벨 패턴이 울립니다:
+
+| Level | Pattern | Trigger |
+|-------|---------|---------|
+| **Urgent** | 삐삐삐 · 삐삐삐 (6회 빠른 비프) | → ERROR |
+| **Warning** | 삐용 · 삐용 · 삐용 (3회 비프) | → STOPPED |
+| **Info** | 삐 (1회 비프) | 기타 상태 변경 |
+
+데스크톱 알림(macOS Notification Center, Windows Toast, Linux notify-send)도 동시에 전송됩니다.
 
 ### Real-time File Watching
 
@@ -101,6 +129,15 @@ AI 개발 환경이 복잡해졌습니다. Claude Desktop, Cursor, VS Code, Gemi
 ## Installation
 
 > **Requires [Bun](https://bun.sh) v1.0+**
+
+### npm
+
+```bash
+npm install -g ai-config-monitor
+ai-monitor
+```
+
+### From Source
 
 ```bash
 # Clone & install
@@ -134,9 +171,12 @@ ai-monitor
 # Specify project path
 ai-monitor --project /path/to/your/project
 
+# Custom health check interval (seconds, default: 10, min: 3)
+ai-monitor --interval 5
+
 # Direct run without install
 bun run src/index.ts
-bun run src/index.ts --project .
+bun run src/index.ts --project . --interval 5
 ```
 
 ### Keyboard Shortcuts
@@ -179,7 +219,7 @@ src/
 │   └── plugins.ts            # Plugins
 │
 ├── health/                   # Server health checking
-│   ├── checker.ts            # 30s polling orchestrator
+│   ├── checker.ts            # Configurable polling orchestrator
 │   ├── docker-health.ts      # Docker container + MCP server list
 │   ├── process-health.ts     # OS process table search
 │   └── http-health.ts        # HTTP endpoint ping
@@ -192,7 +232,7 @@ src/
 │   └── file-watcher.ts       # fs.watch + debounce
 │
 ├── notify/
-│   └── notifier.ts           # Desktop notification + terminal bell
+│   └── notifier.ts           # Alert patterns + desktop notification
 │
 └── types/
     └── index.ts              # All type definitions
@@ -207,8 +247,8 @@ src/
 | Colors | `ansis` | Chalk alternative with full Bun compatibility |
 | Screen | Alternate buffer (`\x1b[?1049h`) | Preserves original terminal on exit |
 | Rendering | Dirty flag + 100ms interval | Minimal redraws, no flicker |
-| Health check | 30s polling | Balance between freshness and resource usage |
-| Notifications | `node-notifier` + `\x07` | Native OS notifications + terminal bell |
+| Health check | 10s polling (configurable) | Fast detection with shared process cache |
+| Notifications | `node-notifier` + bell pattern | Native OS notifications + audible terminal alerts |
 
 ### Cross-Platform Support
 
@@ -218,6 +258,7 @@ src/
 | Process search | `ps -ax` | `tasklist /v /fo csv` | `ps -ax` |
 | Docker health | `docker mcp server list` | Same | Same |
 | Desktop notifications | Notification Center | Toast | notify-send |
+| Terminal bell | `\x07` pattern | `\x07` pattern | `\x07` pattern |
 | Box drawing | Unicode | Unicode (WT) / ASCII (cmd) | Unicode |
 
 ## Tech Stack
