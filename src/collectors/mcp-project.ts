@@ -1,9 +1,36 @@
 import { existsSync } from 'fs';
 import type { McpServer, TransportType } from '../types/index.ts';
 
-export async function collectProjectMcp(configPath?: string): Promise<McpServer[]> {
-  if (!configPath || !existsSync(configPath)) return [];
+export async function collectProjectMcp(projectMcpPath?: string, projectCodexMcpPath?: string): Promise<McpServer[]> {
+  const servers: McpServer[] = [];
+  const seen = new Set<string>();
 
+  if (projectMcpPath && existsSync(projectMcpPath)) {
+    const parsed = await parseProjectFile(projectMcpPath);
+    for (const server of parsed) {
+      const key = `${server.name}:${server.command || ''}:${server.url || ''}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        servers.push(server);
+      }
+    }
+  }
+
+  if (projectCodexMcpPath && existsSync(projectCodexMcpPath)) {
+    const parsed = await parseProjectFile(projectCodexMcpPath);
+    for (const server of parsed) {
+      const key = `${server.name}:${server.command || ''}:${server.url || ''}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        servers.push(server);
+      }
+    }
+  }
+
+  return servers;
+}
+
+async function parseProjectFile(configPath: string): Promise<McpServer[]> {
   try {
     const raw = await Bun.file(configPath).text();
     const config = JSON.parse(raw);
@@ -13,7 +40,6 @@ export async function collectProjectMcp(configPath?: string): Promise<McpServer[
     for (const [name, entry] of Object.entries(mcpServers)) {
       const e = entry as Record<string, unknown>;
       const transport = detectTransport(e);
-
       servers.push({
         vendor: 'Project',
         name,

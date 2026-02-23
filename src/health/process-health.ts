@@ -43,8 +43,8 @@ export async function checkProcessHealth(
 function buildSearchTerms(serverName: string, command: string, args?: string[]): string[] {
   const terms: string[] = [];
 
-  if (command === 'npx' && args && args.length > 0) {
-    // npx -y @org/package-name → 패키지 이름으로 검색
+  if ((command === 'npx' || command === 'uvx') && args && args.length > 0) {
+    // npx/uvx -y @org/package-name → 패키지 이름으로 검색
     const pkg = args.find(a => !a.startsWith('-'));
     if (pkg) {
       terms.push(pkg);

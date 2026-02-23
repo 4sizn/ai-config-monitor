@@ -158,7 +158,7 @@ export class App {
         collectCursor(paths.cursor),
         collectVSCode(paths.vscode),
         collectGemini(paths.gemini),
-        collectProjectMcp(paths.projectMcp),
+        collectProjectMcp(paths.projectMcp, paths.projectCodexMcp),
         collectSkills(paths.skills, paths.skillLock),
         collectHooks(paths.claudeCli, this.projectPath),
         collectPlugins(paths.plugins),
@@ -268,7 +268,7 @@ export class App {
     // ─── Header ───
     lines.push(topBorder(w));
     const time = new Date().toLocaleTimeString('en-US', { hour12: false });
-    const titleLeft = `  AI CONFIG MONITOR v1.2.0`;
+    const titleLeft = `  AI CONFIG MONITOR v1.2.1`;
     const titleRight = time + '  ';
     const titlePad = Math.max(w - 4 - visibleWidth(titleLeft) - visibleWidth(titleRight), 0);
     lines.push(boxLine(

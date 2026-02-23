@@ -101,6 +101,7 @@ export interface ConfigPaths {
   skillLock: string;
   plugins: string;
   projectMcp?: string;
+  projectCodexMcp?: string;
 }
 
 // ─── Tab Definition ───
