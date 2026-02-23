@@ -1,6 +1,6 @@
 {
   "name": "ai-config-monitor",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Real-time CLI dashboard for monitoring AI vendor MCP servers, hooks, skills configuration",
   "type": "module",
   "bin": {

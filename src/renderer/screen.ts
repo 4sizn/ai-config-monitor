@@ -4,7 +4,7 @@ import {
   cursorHome,
   cursorHide,
   cursorShow,
-  clearToEnd,
+  clearScreen,
 } from './ansi.ts';
 
 export class Screen {
@@ -21,7 +21,7 @@ export class Screen {
 
   enter(): void {
     if (this.entered) return;
-    process.stdout.write(enterAltScreen + cursorHide);
+    process.stdout.write(enterAltScreen + cursorHide + clearScreen + cursorHome);
     this.entered = true;
   }
 
@@ -39,12 +39,12 @@ export class Screen {
     const trimmed = lines.slice(0, maxLines);
 
     // Build output buffer
-    let output = cursorHome;
+    // Clear full frame first to avoid ghosting on terminals with partial alt-screen support.
+    let output = cursorHome + clearScreen + cursorHome;
     for (let i = 0; i < maxLines; i++) {
       if (i < trimmed.length) {
         output += trimmed[i];
       }
-      output += clearToEnd;
       if (i < maxLines - 1) {
         output += '\n';
       }

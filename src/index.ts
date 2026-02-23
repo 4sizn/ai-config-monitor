@@ -22,7 +22,7 @@ function parseArgs(): { projectPath?: string; intervalMs?: number } {
       printHelp();
       process.exit(0);
     } else if (args[i] === '--version' || args[i] === '-v') {
-      console.log('ai-config-monitor v1.2.1');
+      console.log('ai-config-monitor v1.2.2');
       process.exit(0);
     }
   }
@@ -32,7 +32,7 @@ function parseArgs(): { projectPath?: string; intervalMs?: number } {
 
 function printHelp(): void {
   console.log(`
-ai-config-monitor v1.2.1
+ai-config-monitor v1.2.2
 
 Real-time CLI dashboard for monitoring AI vendor configurations.
 
