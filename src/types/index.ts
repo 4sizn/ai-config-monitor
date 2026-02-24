@@ -102,6 +102,7 @@ export interface ConfigPaths {
   plugins: string;
   projectMcp?: string;
   projectCodexMcp?: string;
+  projectCodexConfig?: string;
 }
 
 // ─── Tab Definition ───

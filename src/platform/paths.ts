@@ -51,6 +51,7 @@ export function getConfigPaths(projectPath?: string): ConfigPaths {
   if (projectPath) {
     paths.projectMcp = join(projectPath, '.mcp.json');
     paths.projectCodexMcp = join(projectPath, '.codex', 'mcp.json');
+    paths.projectCodexConfig = join(projectPath, '.codex', 'config.toml');
   }
 
   return paths;
@@ -71,6 +72,9 @@ export function getAllWatchPaths(paths: ConfigPaths): string[] {
   }
   if (paths.projectCodexMcp) {
     watchable.push(paths.projectCodexMcp);
+  }
+  if (paths.projectCodexConfig) {
+    watchable.push(paths.projectCodexConfig);
   }
   return watchable;
 }
