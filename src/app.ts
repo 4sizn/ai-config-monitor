@@ -268,7 +268,7 @@ export class App {
     // ─── Header ───
     lines.push(topBorder(w));
     const time = new Date().toLocaleTimeString('en-US', { hour12: false });
-    const titleLeft = `  AI CONFIG MONITOR v1.2.3`;
+    const titleLeft = `  AI CONFIG MONITOR v1.2.4`;
     const titleRight = time + '  ';
     const titlePad = Math.max(w - 4 - visibleWidth(titleLeft) - visibleWidth(titleRight), 0);
     lines.push(boxLine(

@@ -16,7 +16,7 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  AI CONFIG MONITOR v1.2.2                                    14:47:23   │
+│  AI CONFIG MONITOR v1.2.4                                    14:47:23   │
 │  9 MCP servers · 16 skills · 2 hooks · 1 plugin                        │
 │  PROJECT ~/Documents/lotus/my-project                                   │
 ├──────────────────────────────────────────────────────────────────────────┤
@@ -174,6 +174,12 @@ ai-monitor --project /path/to/your/project
 # Custom health check interval (seconds, default: 10, min: 3)
 ai-monitor --interval 5
 
+# Check if update is available (exit code 10 when available)
+ai-monitor update --check
+
+# Update to latest npm release immediately
+ai-monitor update
+
 # Direct run without install
 bun run src/index.ts
 bun run src/index.ts --project . --interval 5
@@ -194,6 +200,10 @@ bun run src/index.ts --project . --interval 5
 src/
 ├── index.ts                  # CLI entry point
 ├── app.ts                    # Main loop (state + render cycle)
+├── version.ts                # App name/version constants
+│
+├── update/
+│   └── updater.ts            # npm latest check + global update
 │
 ├── renderer/                 # Pure ANSI terminal renderer
 │   ├── screen.ts             # Alternate screen buffer management
